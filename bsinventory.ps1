@@ -28,10 +28,12 @@ function ExtractFromInfoFile($startString, $endString, $importPath){
 # Pull path for each info.dat file in path shown in $CustomSongsPath
 $files = Get-ChildItem $CustomSongsPath -Recurse
 
-"Title,Artist" >> $outputFile
+"Title;Artist" >> $outputFile
 
 # Extract title,song from each info.dat and write to file in $outputFile
 foreach ($f in $files){
-    (ExtractFromInfoFile -startString '"_songName": "' -endString '",' -importPath $f) + ',' + (ExtractFromInfoFile -startString '"_songAuthorName": "' -endString '",' -importPath $f) | Out-File $outputFile -Append
+    $cleanUpData = (ExtractFromInfoFile -startString '"_songName":' -endString '",' -importPath $f) + ';' + (ExtractFromInfoFile -startString '"_songAuthorName":' -endString '",' -importPath $f)
+    $cleanUpData = $cleanUpData -replace ' "' #Clean up Beat Sage Files
+    $cleanUpData = $cleanUpData -replace '"' | Out-File $outputFile -Append #Clean up Beat Saber Files
 }
 
