@@ -1,39 +1,53 @@
-﻿# Location of Beat Saber Song directories, assuming purchased with Steam in default location on C:
-$CustomSongsPath = "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels\*info.dat"
-# Output file & path to desktop
-$outputFile = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop) + "\BeatSaberSongInventory.csv"
+﻿# Location of Beat Saber Custom Levels directory, assuming purchased with Steam in default location on C:
+# Change the below value as needed. Set the directory to search and the output file path
+$songDirectory = "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels"
 
-# Remove existing old output file
-if (Test-Path $outputFile) {
-    Remove-Item $outputFile
+# Define the output path for the Excel file.  Default exports to Desktop
+$outputExcelFile = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop) + "\BeatSaberSongInventory.xlsx"
+
+# If output file already exists, delete it in prepreation for a new one
+if (Test-Path -Path $outputExcelFile) {
+    Remove-Item -Path $outputExcelFile -Force
+    Write-Host "File '$outputExcelFile' removed successfully."
 }
 
-# Function as described, used to extract song title and artist from info.dat files
-function ExtractFromInfoFile($startString, $endString, $importPath){
+# Define the data structure
+$songDataCollection = @()
 
-    #Get content from file
-    $file = Get-Content $importPath
+# Search for all info.dat files in the current directory and subdirectories
+$infoFiles = Get-ChildItem -Path $songDirectory -Filter "info.dat" -Recurse -File
 
-    #Regex pattern to compare two strings
-    $pattern = "$startString(.*?)$endString"
+# Define patterns in info.dat file
+$patternTitle = '"_songName": "(.*?)",'
+$patternArtist = '"_songAuthorName": "(.*?)",'
 
-    #Perform the opperation
-    $result = [regex]::Match($file,$pattern).Groups[1].Value
+# Process each info.dat file
+foreach ($file in $infoFiles) {
+    # Get the content of the file
+    $content = Get-Content -Path $file.FullName
 
-    #Return result
-    return $result
+    # Extract the required data using simple string matching or regex
+    $songTitle = ($content | Select-String -Pattern $patternTitle).Matches[0].Groups[1].Value.Trim()
+    $songArtist = ($content | Select-String -Pattern $patternArtist).Matches[0].Groups[1].Value.Trim()
 
+    # Create a custom object with the extracted data
+    $songObject = [PSCustomObject]@{
+        Artist = $songArtist
+        Title = $songTitle
+    }
+
+    # Add the object to the collection
+    $songDataCollection += $songObject
 }
 
-# Pull path for each info.dat file in path shown in $CustomSongsPath
-$files = Get-ChildItem $CustomSongsPath -Recurse
+#Sort data by Artist
+$sortedSongData = $songDataCollection | Sort-Object -Property Artist
 
-"Title;Artist" >> $outputFile
-
-# Extract title,song from each info.dat and write to file in $outputFile
-foreach ($f in $files){
-    $cleanUpData = (ExtractFromInfoFile -startString '"_songName":' -endString '",' -importPath $f) + ';' + (ExtractFromInfoFile -startString '"_songAuthorName":' -endString '",' -importPath $f)
-    $cleanUpData = $cleanUpData -replace ' "' #Clean up Beat Sage Files
-    $cleanUpData = $cleanUpData -replace '"' | Out-File $outputFile -Append #Clean up Beat Saber Files
+# Export the collection to an formatted Excel file using the ImportExcel module
+if ($songDataCollection) {
+    Write-Host "Exporting data to $outputPath"
+    $sortedSongData | Export-Excel -Path $outputExcelFile -WorksheetName "Song Information" -AutoSize -TableStyle:'Medium2'-Show
+    Write-Host "Export complete."
+} else {
+    Write-Host "No data found to export."
 }
-
