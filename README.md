@@ -1,0 +1,20 @@
+# BSInventory
+Creates an Excel spreadsheet inventory of custom levels songs for Beat Saber
+
+_This script requires the **Export-Excel** cmdlet which is installed with the ImportExcel module.This module allows you to export data directly to .xlsx files without needing Excel installed on the system._
+
+## 1. Install the ImportExcel Module
+First, you need to install the ImportExcel module from the PowerShell Gallery. Open an elevated PowerShell prompt and run:
+
+```
+Install-Module -Name ImportExcel -Scope CurrentUser
+```
+
+## 2. Modify the Script
+Open the script in PowerShell ISE (you will not need elevated privledges to modify or execute the script), modify the following variables:  
+* **$songDirectory**  
+* **$outputExcelFile**  
+
+## 3. Execute the script
+Run the script an enjoy the output  
+_All info is read from the **info.dat** in each custom level subfolder._
